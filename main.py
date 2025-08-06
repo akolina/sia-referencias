@@ -101,12 +101,13 @@ def actualizar_wiki_redmine(contenido):
     }
     data = {
         "wiki_page": {
-            "text": contenido,
+            "text": contenido.strip(),  # Asegura no enviar espacios extra
             "comments": f"Actualización automática - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         }
     }
+
     try:
-        # ✅ Usamos data=json.dumps(data) para mayor compatibilidad
+        # Usamos data=json.dumps(data) y no json=data
         response = requests.put(
             url,
             data=json.dumps(data),
@@ -114,18 +115,28 @@ def actualizar_wiki_redmine(contenido):
             timeout=15,
             verify=False
         )
+
+        print(f"📡 URL: {url}")
+        print(f"📤 Datos enviados: {json.dumps(data, indent=2)}")
+        print(f"📥 Estado: {response.status_code}")
+        print(f"📄 Respuesta: {response.text}")
+
         if response.status_code in [200, 201]:
             print("✅ Éxito: Página del wiki actualizada.")
             return True
         else:
             print(f"❌ Error {response.status_code}: {response.text}")
             return False
+
     except Exception as e:
         print(f"❌ Error al conectar con Redmine: {str(e)}")
         return False
 
 # === EJECUCIÓN ===
 def main():
+    print("📝 Contenido generado (primeras 500 letras):")
+    print(contenido[:500])
+    print("...")
     print("🚀 Iniciando actualización...\n")
     resultados = buscar_papers(SEMANTIC_SCHOLAR_QUERY)
     if not resultados:
