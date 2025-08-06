@@ -1,10 +1,9 @@
-# .github/workflows/actualizar.yml
 name: Actualizar Referencias Científicas
 
 on:
   workflow_dispatch:  # Permite ejecutar manualmente
   schedule:
-    - cron: '0 8 * * 1'  # Cada lunes a las 8:00 AM (hora UTC)
+    - cron: '0 14 * * 1'  # Cada lunes a las 14:00 UTC = 9:00 AM hora de Cuba
 
 jobs:
   actualizar:
