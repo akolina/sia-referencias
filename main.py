@@ -134,19 +134,20 @@ def actualizar_wiki_redmine(contenido):
 
 # === EJECUCIÓN ===
 def main():
-    print("📝 Contenido generado (primeras 500 letras):")
-    print(contenido[:500])
-    print("...")
     print("🚀 Iniciando actualización...\n")
     resultados = buscar_papers(SEMANTIC_SCHOLAR_QUERY)
     if not resultados:
         return
+    # Generar contenido primero
     contenido = formatear_papers_markdown(resultados)
+    
+    # Ahora puedes imprimirlo sin problemas
+    print("📝 Contenido generado (primeras 500 letras):")
+    print(contenido[:500])
+    print("...")
+    
     print("📝 Enviando a Redmine...")
     if actualizar_wiki_redmine(contenido):
         print("🎉 ¡Éxito! Tu wiki está actualizado.")
     else:
         print("⚠️ Falló la actualización.")
-
-if __name__ == "__main__":
-    main()
