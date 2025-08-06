@@ -106,8 +106,14 @@ def actualizar_wiki_redmine(contenido):
         }
     }
     try:
-        # ⚠️ verify=False: Para certificado autofirmado
-        response = requests.put(url, json=data, headers=headers, timeout=15, verify=False)
+        # ✅ Usamos data=json.dumps(data) para mayor compatibilidad
+        response = requests.put(
+            url,
+            data=json.dumps(data),
+            headers=headers,
+            timeout=15,
+            verify=False
+        )
         if response.status_code in [200, 201]:
             print("✅ Éxito: Página del wiki actualizada.")
             return True
