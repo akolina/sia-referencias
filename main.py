@@ -15,7 +15,7 @@ REDMINE_API_KEY = "TU_API_KEY_AQUI"  # Se reemplaza con GitHub Secrets
 
 # === BÚSQUEDA CIENTÍFICA ===
 SEMANTIC_SCHOLAR_QUERY = (
-    "digital transformation environmental information system open data "
+    "digital transformation environmental information system open data"
     "geospatial platform climate change sustainability public sector"
 )
 
