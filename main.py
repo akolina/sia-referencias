@@ -2,22 +2,23 @@
 import requests
 import json
 import urllib3
+import os
 from datetime import datetime
 
 # === Desactivar advertencias de SSL (opcional) ===
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # === CONFIGURACIÓN ===
-REDMINE_URL = "https://gesproy.pagina.cu"
+REDMINE_URL = "https://gesproy.pagina.cu"  # ✅ Sin espacios
 PROJECT_IDENTIFIER = "ps211lh010_001"
 WIKI_PAGE_TITLE = "Referencias_academicas"
-REDMINE_API_KEY = "TU_API_KEY_AQUI"  # Se reemplaza con GitHub Secrets
+REDMINE_API_KEY = os.environ['REDMINE_API_KEY']  # ✅ Leído desde GitHub Secrets
 
 # === BÚSQUEDA CIENTÍFICA ===
 SEMANTIC_SCHOLAR_QUERY = (
-    "digital transformation environmental information system open data"
+    "digital transformation environmental information system open data "
     "geospatial platform climate change sustainability public sector"
-)
+)  # ✅ Espacio añadido entre "data " y "geospatial"
 
 HEADERS = {
     "User-Agent": "SIA-Cuba-Digital/1.0"
@@ -28,7 +29,7 @@ HEADERS = {
 # ================================
 
 def buscar_papers(query, limit=6):
-    url = "https://api.semanticscholar.org/graph/v1/paper/search"
+    url = "https://api.semanticscholar.org/graph/v1/paper/search"  # ✅ Sin espacios
     params = {
         "query": query,
         "limit": limit,
