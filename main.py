@@ -1,14 +1,17 @@
 import os
 import requests
+import time
 from datetime import datetime
 
-# Parámetros de configuración
-SEMANTIC_SCHOLAR_QUERY = "inteligencia artificial en salud"
+# Configuración
+SEMANTIC_SCHOLAR_QUERY = "inteligencia artificial en medio ambiente"
 REDMINE_URL = os.getenv("REDMINE_URL")
 REDMINE_API_KEY = os.getenv("REDMINE_API_KEY")
 PROJECT_IDENTIFIER = "sia"
 WIKI_PAGE_TITLE = "referencias"
 LOG_FILE = "log.txt"
+LIMIT_ARTICULOS = 3
+ARCHIVO_DUPLICADOS = "papers_guardados.txt"
 
 def log(mensaje):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -16,16 +19,50 @@ def log(mensaje):
         f.write(f"[{timestamp}] {mensaje}\n")
     print(mensaje)
 
-def buscar_papers(query):
-    log(f"🔍 Buscando papers para: '{query}'")
-    url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={query}&limit=5&fields=title,authors,url,year"
-    response = requests.get(url)
-    if response.status_code != 200:
-        log(f"❌ Error al buscar papers: {response.status_code}")
+def buscar_papers(query, limite):
+    log(f"🔍 Buscando hasta {limite} papers para: '{query}'")
+    url = f"https://api.semanticscholar.org/graph/v1/paper/search"
+    params = {
+        "query": query,
+        "limit": limite,
+        "fields": "title,authors,url,year,journal"
+    }
+    try:
+        response = requests.get(url, params=params)
+        if response.status_code == 429:
+            log("❌ Error 429: Demasiadas solicitudes. Esperando 10 segundos...")
+            time.sleep(10)
+            return []
+        elif response.status_code != 200:
+            log(f"❌ Error al buscar papers: {response.status_code}")
+            return []
+        data = response.json()
+        log(f"✅ {len(data.get('data', []))} papers encontrados.")
+        return data.get("data", [])
+    except Exception as e:
+        log(f"❌ Excepción al buscar papers: {str(e)}")
         return []
-    data = response.json()
-    log(f"✅ {len(data.get('data', []))} papers encontrados.")
-    return data.get("data", [])
+
+def filtrar_papers_nuevos(papers):
+    if not os.path.exists(ARCHIVO_DUPLICADOS):
+        with open(ARCHIVO_DUPLICADOS, "w") as f:
+            pass
+
+    with open(ARCHIVO_DUPLICADOS, "r") as f:
+        titulos_guardados = set(line.strip() for line in f)
+
+    nuevos = []
+    for paper in papers:
+        if paper["title"] not in titulos_guardados:
+            nuevos.append(paper)
+            titulos_guardados.add(paper["title"])
+
+    with open(ARCHIVO_DUPLICADOS, "a") as f:
+        for paper in nuevos:
+            f.write(paper["title"] + "\n")
+
+    log(f"🧹 Filtrados {len(nuevos)} papers nuevos.")
+    return nuevos
 
 def formatear_papers_markdown(papers):
     markdown = "# Referencias científicas\n\n"
@@ -33,6 +70,13 @@ def formatear_papers_markdown(papers):
         autores = ", ".join([a["name"] for a in paper.get("authors", [])])
         markdown += f"- **{paper['title']}** ({paper['year']}) — {autores}\n  [Ver artículo]({paper['url']})\n\n"
     return markdown
+
+def guardar_historico_markdown(contenido_md):
+    fecha = datetime.now().strftime("%Y-%m-%d")
+    nombre_archivo = f"referencias_{fecha}.md"
+    with open(nombre_archivo, "w", encoding="utf-8") as f:
+        f.write(contenido_md)
+    log(f"🗂️ Archivo histórico guardado: {nombre_archivo}")
 
 def actualizar_wiki_redmine(contenido_md):
     log("📤 Actualizando página wiki en Redmine...")
@@ -46,18 +90,26 @@ def actualizar_wiki_redmine(contenido_md):
             "text": contenido_md
         }
     }
-    response = requests.put(url, json=payload, headers=headers)
-    if response.status_code == 200:
-        log("✅ Wiki actualizada correctamente.")
-    else:
-        log(f"❌ Error al actualizar wiki: {response.status_code} - {response.text}")
+    try:
+        response = requests.put(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            log("✅ Wiki actualizada correctamente.")
+        else:
+            log(f"❌ Error al actualizar wiki: {response.status_code} - {response.text}")
+    except Exception as e:
+        log(f"❌ Excepción al actualizar wiki: {str(e)}")
 
 if __name__ == "__main__":
     log("🚀 Inicio de ejecución del script")
-    papers_data = buscar_papers(SEMANTIC_SCHOLAR_QUERY)
+    papers_data = buscar_papers(SEMANTIC_SCHOLAR_QUERY, LIMIT_ARTICULOS)
     if papers_data:
-        contenido_md = formatear_papers_markdown(papers_data)
-        actualizar_wiki_redmine(contenido_md)
+        papers_nuevos = filtrar_papers_nuevos(papers_data)
+        if papers_nuevos:
+            contenido_md = formatear_papers_markdown(papers_nuevos)
+            guardar_historico_markdown(contenido_md)
+            actualizar_wiki_redmine(contenido_md)
+        else:
+            log("⚠️ No hay papers nuevos para agregar.")
     else:
         log("⚠️ No se encontraron papers.")
     log("🏁 Fin de ejecución\n")
