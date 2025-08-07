@@ -22,7 +22,8 @@ jobs:
           python -m pip install requests
 
       - name: Ejecutar script
-        env:
-          REDMINE_API_KEY: ${{ secrets.REDMINE_API_KEY }}
+       env:
+         REDMINE_URL: https://gesproy.pagina.cu
+         REDMINE_API_KEY: ${{ secrets.REDMINE_API_KEY }}
         run: |
           python main.py
