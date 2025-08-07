@@ -9,6 +9,10 @@ jobs:
   actualizar:
     runs-on: ubuntu-latest
 
+    env:
+      REDMINE_URL: https://gesproy.pagina.cu
+      REDMINE_API_KEY: ${{ secrets.REDMINE_API_KEY }}
+
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v3
@@ -23,6 +27,10 @@ jobs:
 
       - name: Ejecutar script
         run: python main.py
+
+      - name: Confirmar finalización
+        run: echo "✅ Referencias actualizadas correctamente."
+
 
       - name: Confirmar finalización
         run: echo "Referencias actualizadas correctamente."
