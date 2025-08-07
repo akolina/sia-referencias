@@ -18,12 +18,11 @@ jobs:
           python-version: '3.11'
 
       - name: Instalar dependencias
-        run: |
-          python -m pip install requests
+        run: pip install -r requirements.txt
 
       - name: Ejecutar script
-       env:
-         REDMINE_URL: https://gesproy.pagina.cu
-         REDMINE_API_KEY: ${{ secrets.REDMINE_API_KEY }}
-        run: |
-          python main.py
+        env:
+          REDMINE_URL: https://gesproy.pagina.cu
+          REDMINE_API_KEY: ${{ secrets.REDMINE_API_KEY }}
+        run: python main.py
+
