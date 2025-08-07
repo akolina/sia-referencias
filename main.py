@@ -7,8 +7,9 @@ from datetime import datetime
 SEMANTIC_SCHOLAR_QUERY = "inteligencia artificial en medio ambiente"
 REDMINE_URL = os.getenv("REDMINE_URL")
 REDMINE_API_KEY = os.getenv("REDMINE_API_KEY")
-PROJECT_IDENTIFIER = "sia"
-WIKI_PAGE_TITLE = "referencias"
+PROJECT_IDENTIFIER = "ps211lh010_001"
+WIKI_PAGE_TITLE = "Referencias_academicas"
+url_wiki = f"{REDMINE_URL}/projects/{project_id}/wiki/{wiki_page}.json"
 LOG_FILE = "log.txt"
 LIMIT_ARTICULOS = 3
 ARCHIVO_DUPLICADOS = "papers_guardados.txt"
