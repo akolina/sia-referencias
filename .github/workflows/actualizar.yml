@@ -1,28 +1,30 @@
 name: Actualizar Referencias Científicas
 
 on:
-  workflow_dispatch:  # Permite ejecutar manualmente
+  workflow_dispatch:
   schedule:
-    - cron: '0 14 * * 1'  # Cada lunes a las 14:00 UTC = 9:00 AM hora de Cuba
+    - cron: '0 12 * * 1'  # Ejecutar todos los lunes a las 12:00 UTC
 
 jobs:
   actualizar:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout del repositorio
         uses: actions/checkout@v3
 
       - name: Configurar Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
       - name: Instalar dependencias
-        run: pip install -r requirements.txt
+        run: pip install requests python-dotenv
 
       - name: Ejecutar script
-        env:
-          REDMINE_URL: https://gesproy.pagina.cu
-          REDMINE_API_KEY: ${{ secrets.REDMINE_API_KEY }}
         run: python main.py
+
+      - name: Confirmar finalización
+        run: echo "Referencias actualizadas correctamente."
+
 
