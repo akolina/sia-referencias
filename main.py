@@ -1,140 +1,63 @@
-# main.py
-import requests
-import json
-import urllib3
 import os
+import requests
 from datetime import datetime
 
-# === Desactivar advertencias de SSL (por certificado autofirmado) ===
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# Parámetros de configuración
+SEMANTIC_SCHOLAR_QUERY = "inteligencia artificial en salud"
+REDMINE_URL = os.getenv("REDMINE_URL")
+REDMINE_API_KEY = os.getenv("REDMINE_API_KEY")
+PROJECT_IDENTIFIER = "sia"
+WIKI_PAGE_TITLE = "referencias"
+LOG_FILE = "log.txt"
 
-# === CONFIGURACIÓN ===
-REDMINE_URL = "https://gesproy.pagina.cu"
-PROJECT_IDENTIFIER = "ps211lh010_001"
-WIKI_PAGE_TITLE = "Referencias_academicas"
-REDMINE_API_KEY = os.environ['REDMINE_API_KEY']  # Desde GitHub Secrets
+def log(mensaje):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(LOG_FILE, "a") as f:
+        f.write(f"[{timestamp}] {mensaje}\n")
+    print(mensaje)
 
-# === BÚSQUEDA CIENTÍFICA ===
-SEMANTIC_SCHOLAR_QUERY = (
-    "digital transformation environmental information system open data "
-    "geospatial platform climate change sustainability public sector"
-)
+def buscar_papers(query):
+    log(f"🔍 Buscando papers para: '{query}'")
+    url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={query}&limit=5&fields=title,authors,url,year"
+    response = requests.get(url)
+    if response.status_code != 200:
+        log(f"❌ Error al buscar papers: {response.status_code}")
+        return []
+    data = response.json()
+    log(f"✅ {len(data.get('data', []))} papers encontrados.")
+    return data.get("data", [])
 
-HEADERS = {
-    "User-Agent": "SIA-Cuba-Digital/1.0"
-}
+def formatear_papers_markdown(papers):
+    markdown = "# Referencias científicas\n\n"
+    for paper in papers:
+        autores = ", ".join([a["name"] for a in paper.get("authors", [])])
+        markdown += f"- **{paper['title']}** ({paper['year']}) — {autores}\n  [Ver artículo]({paper['url']})\n\n"
+    return markdown
 
-# ================================
-#       FUNCIONES
-# ================================
-
-def buscar_papers(query, limit=6):
-    url = "https://api.semanticscholar.org/graph/v1/paper/search"
-    params = {
-        "query": query,
-        "limit": limit,
-        "fields": "title,authors,year,abstract,url,citationCount,journal",
-        "year": "2018-2025"
-    }
-    try:
-        print("📡 Buscando en Semantic Scholar...")
-        response = requests.get(url, params=params, headers=HEADERS, timeout=15)
-        if response.status_code == 200:
-            data = response.json()
-            print(f"✅ {len(data['data'])} artículos encontrados.")
-            return data
-        else:
-            print(f"❌ Error {response.status_code}: {response.text}")
-            return None
-    except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        return None
-
-def formatear_papers_markdown(papers_data):
-    hoy = datetime.now().strftime("%d/%m/%Y %H:%M")
-    md = f"""# Referencias Académicas - Transformación Digital del SIA
-
-> Actualizado el {hoy} (automático)
-
-Artículos científicos relevantes para el SIA.
-
----
-
-"""
-    papers = papers_data.get("data", [])
-    if not papers:
-        md += "❌ No se encontraron artículos.\n"
-        return md
-
-    for i, paper in enumerate(papers, 1):
-        title = paper.get("title", "Sin título")
-        url = paper.get("url", "#")
-        year = paper.get("year", "N/A")
-        citations = paper.get("citationCount", 0)
-        journal = paper.get("journal", {}) or {}
-        journal_name = journal.get("name", "Sin revista")
-        abstract = (paper.get("abstract") or "No disponible")[:350] + "..."
-
-        authors = ", ".join([a["name"] for a in paper.get("authors", [])[:4]])
-        if len(paper.get("authors", [])) > 4:
-            authors += " et al."
-
-        md += f"""
-### {i}. {title}
-
-- **Autores:** {authors}
-- **Año:** {year} | **Revista:** {journal_name}
-- **Citas:** {citations}
-- **Resumen:** {abstract}
-- [🔗 Ver artículo]({url})
-
----
-
-"""
-    return md
-
-def actualizar_wiki_redmine(contenido):
+def actualizar_wiki_redmine(contenido_md):
+    log("📤 Actualizando página wiki en Redmine...")
     url = f"{REDMINE_URL}/projects/{PROJECT_IDENTIFIER}/wiki/{WIKI_PAGE_TITLE}.json"
     headers = {
-        "Content-Type": "application/json",
-        "X-Redmine-API-Key": REDMINE_API_KEY
+        "X-Redmine-API-Key": REDMINE_API_KEY,
+        "Content-Type": "application/json"
     }
-    data = {
+    payload = {
         "wiki_page": {
-            "text": contenido.strip(),
-            "comments": f"Actualización automática - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            "text": contenido_md
         }
     }
-    try:
-        response = requests.put(
-            url,
-            data=json.dumps(data),
-            headers=headers,
-            timeout=15,
-            verify=False
-        )
-        if response.status_code in [200, 201]:
-            print("✅ Éxito: Página del wiki actualizada.")
-            return True
-        else:
-            print(f"❌ Error {response.status_code}: {response.text}")
-            return False
-    except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        return False
-
-# === EJECUCIÓN ===
-def main():
-    print("🚀 Iniciando actualización...\n")
-    resultados = buscar_papers(SEMANTIC_SCHOLAR_QUERY)
-    if not resultados:
-        return
-    contenido = formatear_papers_markdown(resultados)
-    print("📝 Enviando a Redmine...")
-    if actualizar_wiki_redmine(contenido):
-        print("🎉 ¡Éxito! Tu wiki está actualizado.")
+    response = requests.put(url, json=payload, headers=headers)
+    if response.status_code == 200:
+        log("✅ Wiki actualizada correctamente.")
     else:
-        print("⚠️ Falló la actualización.")
+        log(f"❌ Error al actualizar wiki: {response.status_code} - {response.text}")
 
 if __name__ == "__main__":
-    main()
+    log("🚀 Inicio de ejecución del script")
+    papers_data = buscar_papers(SEMANTIC_SCHOLAR_QUERY)
+    if papers_data:
+        contenido_md = formatear_papers_markdown(papers_data)
+        actualizar_wiki_redmine(contenido_md)
+    else:
+        log("⚠️ No se encontraron papers.")
+    log("🏁 Fin de ejecución\n")
