@@ -19,29 +19,27 @@ def log(mensaje):
         f.write(f"[{timestamp}] {mensaje}\n")
     print(mensaje)
 
-def buscar_papers(query, limite):
-    log(f"🔍 Buscando hasta {limite} papers para: '{query}'")
-    url = f"https://api.semanticscholar.org/graph/v1/paper/search"
-    params = {
-        "query": query,
-        "limit": limite,
-        "fields": "title,authors,url,year,journal"
-    }
-    try:
-        response = requests.get(url, params=params)
-        if response.status_code == 429:
-            log("❌ Error 429: Demasiadas solicitudes. Esperando 10 segundos...")
-            time.sleep(10)
-            return []
-        elif response.status_code != 200:
-            log(f"❌ Error al buscar papers: {response.status_code}")
-            return []
-        data = response.json()
-        log(f"✅ {len(data.get('data', []))} papers encontrados.")
-        return data.get("data", [])
-    except Exception as e:
-        log(f"❌ Excepción al buscar papers: {str(e)}")
-        return []
+def buscar_papers(tema, limite):
+    url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={tema}&limit={limite}&fields=title,authors,year,url"
+    headers = {"User-Agent": "sia-referencias-bot"}
+    
+    for intento in range(5):
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            return response.json().get("data", [])
+        
+        elif response.status_code == 429:
+            espera = 10 * (intento + 1)
+            print(f"❌ Error 429: Demasiadas solicitudes. Esperando {espera} segundos...")
+            time.sleep(espera)
+        
+        else:
+            print(f"⚠️ Error inesperado ({response.status_code}): {response.text}")
+            break
+    
+    return []
+
 
 def filtrar_papers_nuevos(papers):
     if not os.path.exists(ARCHIVO_DUPLICADOS):
